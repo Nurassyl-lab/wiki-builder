@@ -1,0 +1,3 @@
+pandas==2.2.1
+rdflib==7.0.0
+Requests==2.31.0
