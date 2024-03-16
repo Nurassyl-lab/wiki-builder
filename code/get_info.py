@@ -19,6 +19,8 @@ def wikipedia_to_dbpedia(wikipedia_url):
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Extract RDF predicates and objects from a given URL.')
     parser.add_argument('--wiki_url', default='skip', help='The URL of the RDF resource to extract data from.')
+    parser.add_argument('--file_name', default='info.csv', help='Name of the produced csv file.')
+
     args = parser.parse_args()
     return args
 
@@ -81,4 +83,4 @@ if response.status_code == 200:
 else:
     print(f'Failed to retrieve RDF data from {url}. Status code: {response.status_code}')
 
-pd.DataFrame.from_dict(res_file).to_csv('info.csv', index=False)
+pd.DataFrame.from_dict(res_file).to_csv(f'generated/{args.file_name}', index=False)
