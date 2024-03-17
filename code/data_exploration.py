@@ -1,5 +1,7 @@
 """
 Scripting for loading the data
+
+Usage: python 
 """
 import logging
 import os
@@ -14,7 +16,7 @@ query_wiki_id = """
 PREFIX xmlns: <http://xmlns.com/foaf/0.1/>
 PREFIX wiki: <http://en.wikipedia.org/wiki/>
 
-SELECT ?s ?predicate ?o
+SELECT ?s ?anypreedicate ?object
 WHERE {
   GRAPH <http://huginns.io/graph/wikipedia-links_lang=en> { 
     { VALUES ?predicate { xmlns:primaryTopic }
@@ -23,6 +25,35 @@ WHERE {
     {VALUES ?predicate { xmlns:isPrimaryTopicOf }
       wiki:<val> ?predicate ?o .}
   }
+
+  ?s ?anypreedicate ?object .
+} LIMIT 10
+
+"""
+
+related_objects = """
+PREFIX xmlns: <http://xmlns.com/foaf/0.1/>
+PREFIX wiki: <http://en.wikipedia.org/wiki/>
+
+SELECT ?object ?anyPredicate ?relatedObject
+WHERE {
+  {
+    SELECT ?object WHERE
+    {
+        GRAPH <http://huginns.io/graph/wikipedia-links_lang=en> { 
+          { VALUES ?predicate { xmlns:primaryTopic }
+            wiki:<val> ?predicate ?object .}
+          UNION
+          {VALUES ?predicate { xmlns:isPrimaryTopicOf }
+            wiki:<val> ?predicate ?object .}
+        } 
+    } LIMIT 1
+  }
+
+  GRAPH <http://huginns.io/graph/infobox-properties_lang=en> {
+    ?object ?anyPredicate ?relatedObject .
+  }
+
 } LIMIT 10
 
 """
@@ -121,7 +152,7 @@ def argsies():
     ap = ArgumentParser()
     ap.add_argument("--port", default=3030, type=int)
     ap.add_argument("--host", default="localhost", type=str)
-    ap.add_argument("--wiki_uri", required=True)
+    ap.add_argument("--wiki_id", required=True)
     ap.add_argument("--debug", action="store_true")
 
     parsed = ap.parse_args()
@@ -135,16 +166,16 @@ def argsies():
 "http://xmlns.com/foaf/0.1/primaryTopic"
 
 
-def explore_fuseki(wiki_uri: str):
-    query = query_wiki_id.replace("<val>", "Metallica")
+def explore_fuseki(wiki_id: str):
+    query = related_objects.replace("<val>", wiki_id)
     logger.info(f"We are using query:\n{query}")
     sparql = SPARQLWrapper(fuseki_endpoint)
     sparql.setQuery(query)
     sparql.setReturnFormat(JSON)
     try:
         response = sparql.query().convert()
-        logger.info(f"Response is {response}")
-        logger.info("Prettier")
+        # logger.info(f"Response is {response}")
+        # logger.info("Prettier")
 
         for result in response["results"]["bindings"]:  # type:ignore
             logger.info(result)
@@ -167,4 +198,4 @@ if __name__ == "__main__":
     # Send Fuseki the request
 
     fuseki_endpoint = "http://localhost:3030/fusekiservice/query"
-    explore_fuseki(args.wiki_uri)
+    explore_fuseki(args.wiki_id)
